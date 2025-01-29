@@ -1,5 +1,8 @@
 # pico-apps
 
+**Student Name:** Dylan Neve
+**Student Number:** 21364333
+
 Template code repository for the Raspberry Pi Pico used for the CSU23021 course for the Spring semester 2022/2023, 2023/2024, 2024/2025, and so on. Students should clone this repository to their own Git area and use it as the basis to complete their assignments and labs throughout the year.
 
 This repository is set up for use with Visual Studio Code, CMAKE and Doxygen. All build collateral output will be generated under the "build" folder and all Doxygen-generated documentation will be generated under the "docs" folder. The repository is structured as follows.
@@ -86,4 +89,4 @@ Skeleton template for lab exercise #09.
 
 ### labs/lab10
 
-Skeleton template for lab exercise #10.
+Skeleton template for lab exercise #10
