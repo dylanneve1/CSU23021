@@ -10,6 +10,7 @@
 #ifdef __cplusplus
 
 #include <string>
+#include <inttypes.h>
 
 typedef unsigned int uint;
 
