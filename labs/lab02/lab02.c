@@ -1,18 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include "pico/stdlib.h"
-#include "pico/float.h"     // Required for using single-precision variables.
-#include "pico/double.h"    // Required for using double-precision variables.
+#include "pico/float.h"
+#include "pico/double.h"
 
 
 /**
- * @brief LAB #02 - TEMPLATE
- *        Main entry point for the code.
+ * @brief EXAMPLE - HELLO_C
+ *        Simple example to initialise the IOs and then 
+ *        print a "Hello World!" message to the console.
  * 
- * @return int      Returns exit-status zero on completion.
+ * @return int  Application return code (zero for success).
  */
-int main() {
+int main() {]
+
+    // Print a console message to inform user what's going on.
+    printf("Hello World!\n");
 
     // Returning zero indicates everything went okay.
     return 0;
