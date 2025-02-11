@@ -30,15 +30,63 @@
 .equ    GPIO_ISR_OFFSET, 0x74         @ GPIO is int #13 (vector table entry 29)
 .equ    ALRM_ISR_OFFSET, 0x40         @ ALARM0 is int #0 (vector table entry 16)
 
+.data
+sleeptime: .word 1000                 @ The amount of time between blinks
+
 @ Entry point to the ASM portion of the program
 main_asm:
+@-------LED SETUP --------------------
+        ldr     r0, =GPIO_LED_PIN     @ Load LED Pin number into r0
+        bl      asm_gpio_init         @ Initialize GPIO pin
+        ldr     r0, =GPIO_LED_PIN
+        ldr     r1, =GPIO_DIR_OUT
+        bl      asm_gpio_set_dir      @ Set LED as output
+@------ BUTTON SETUP -----------------
+        @ Enable
+        ldr     r0, =GPIO_BTN_EN      @ Load Enable Pin number into r0
+        bl      asm_gpio_init         @ Initialize GPIO pin
+        ldr     r0, =GPIO_BTN_EN      @ Load Enable Pin number into r0
+        ldr     r1, =GPIO_DIR_IN      @ Load direction, input, into r1
+        bl      asm_gpio_set_dir      @ Set Enable as input
+        @ Up
+        ldr     r0, =GPIO_BTN_UP      @ Load Up Pin number into r0
+        bl      asm_gpio_init         @ Initialize GPIO pin
+        ldr     r0, =GPIO_BTN_UP      @ Load Up Pin number into r0
+        ldr     r1, =GPIO_DIR_IN      @ Load direction, input, into r1
+        bl      asm_gpio_set_dir      @ Set Up as input
+        @ Down
+        ldr     r0, =GPIO_BTN_DN      @ Load Down Pin number into r0
+        bl      asm_gpio_init         @ Initialize GPIO pin
+        ldr     r0, =GPIO_BTN_DN      @ Load Down Pin number into r0
+        ldr     r1, =GPIO_DIR_IN      @ Load direction, input, into r1
+        bl      asm_gpio_set_dir      @ Set Down as input
+
+main_loop:
         ldr     r0, =msg
         bl      printf
-main_loop:
-        b       main_loop
+
+        @ Turn LED ON
+        ldr     r0, =GPIO_LED_PIN
+        ldr     r1, =LED_VAL_ON
+        bl      asm_gpio_put
+
+        @ Wait for sleeptime
+        ldr     r0, =sleeptime
+        bl      sleep_ms
+
+        @ Turn LED OFF
+        ldr     r0, =GPIO_LED_PIN
+        ldr     r1, =LED_VAL_OFF
+        bl      asm_gpio_put
+
+        @ Wait for sleeptime
+        ldr     r0, =sleeptime
+        bl      sleep_ms
+
+        b       main_loop              @ Repeat loop
 
 .align 4
-msg:    .asciz "Hello World!\n"
+msg:    .asciz "Running loop!\n"
 
 .data
 lstate: .word   DFLT_STATE_STRT
