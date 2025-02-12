@@ -1,3 +1,17 @@
+/**
+ * @file lab02.c
+ * @brief Calculates an approximation of PI using the Wallis product.
+ *
+ * This program approximates the value of PI using the Wallis product algorithm. 
+ * It calculates and prints PI using both single-precision (float) and double-precision (double)
+ * floating-point representations, along with their absolute errors.
+ *
+ *
+ * @author Dylan Neve
+ *
+ * @note This code is designed for use with the Raspberry Pi Pico.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "pico/stdlib.h"
@@ -26,7 +40,9 @@ void calculatePI_singlePrecision(int iterations) {
         sum *= term;
     }
     pi = 2 * sum;
+    // Calculate error
     float error = fabsf(pi - DEFINED_PI);
+    // Print out approxination and error
     printf("Single Precision PI Approximation = %.11f\n", pi);
     printf("Absolute Error = %.11f\n", error);
     printf("------------------------------------------------\n");
@@ -52,7 +68,9 @@ void calculatePI_doublePrecision(int iterations) {
         sum *= term;
     }
     pi = 2 * sum;
+    // Calculate error
     double error = fabs(pi - DEFINED_PI);
+    // Print out approxination and error
     printf("Double Precision PI Approximation = %.11f\n", pi);
     printf("Absolute Error = %.11f\n", error);
     printf("------------------------------------------------\n");
@@ -68,11 +86,14 @@ void calculatePI_doublePrecision(int iterations) {
 int main() {
     stdio_init_all();
 
+    // Print general information
     printf("Approximating PI: Lab02\n");
     printf("username:         neved\n");
     printf("S/N:          213643332\n");
 
+    // Calculate single precision approximation
     calculatePI_singlePrecision(100000);
+    // Calculate double precision approximation
     calculatePI_doublePrecision(100000);
 
     // Returning zero indicates that everything went okay.
