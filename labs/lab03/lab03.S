@@ -26,10 +26,6 @@ main_asm:
     movs    r1, #BUTTON_GPIO_DIR        @ We want this GPIO pin to be setup as an output pin
     bl      asm_gpio_set_dir            @ Call the subroutine to set the GPIO pin specified by r0 to state specified by r1
 loop:
-    ldr     r0, =SLEEP_TIME             @ Set the value of SLEEP_TIME we want to wait for
-    bl      sleep_ms                    @ Sleep until SLEEP_TIME has elapsed then toggle the LED GPIO pin
-    bl      sub_toggle                  @ Call the subroutine to toggle the current LED GPIO pin value
-    b       loop                        @ Repeat the loop
 
 @ Subroutine to toggle the LED GPIO pin value
 sub_toggle:
