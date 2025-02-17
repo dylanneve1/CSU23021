@@ -12,6 +12,7 @@
 
 .equ    BUTTON_GPIO_PIN, 21     @ Specify the physical GPIO pin that the button is connected to
 .equ    BUTTON_GPIO_DIR, 0      @ Specify the direction that we want to set the GPIO pin to
+.equ    BUTTON_GPIO_PRESSED, 0  @ Specify buttons active state
 
 @ Entry point to the ASM portion of the program
 main_asm:
@@ -25,7 +26,26 @@ main_asm:
     movs    r0, #BUTTON_GPIO_PIN        @ This value is the GPIO LED pin on the PI PICO board
     movs    r1, #BUTTON_GPIO_DIR        @ We want this GPIO pin to be setup as an output pin
     bl      asm_gpio_set_dir            @ Call the subroutine to set the GPIO pin specified by r0 to state specified by r1
+    movs    r2, #1                      @ Stores previous button state, not pressed to begin with
 loop:
+    bl      sub_read_button             @ Read button state (result in r0)
+    cmp     r0, #BUTTON_GPIO_PRESSED    @ Check if button is pressed (active low)
+    bne     skip_toggle                 @ If not pressed, skip toggling
+    cmp     r2, #1                      @ Check if previous state was not pressed
+    bne     skip_toggle                 @ If it was already pressed, skip toggle
+
+    bl      sub_toggle                  @ Toggle LED state
+
+skip_toggle:
+    movs    r2, r0                      @ Store current button state for next iteration
+    b       loop                        @ Repeat loop
+
+@ Subroutine to read button state
+sub_read_button:
+    push    {lr}                        
+    movs    r0, #BUTTON_GPIO_PIN        
+    bl      asm_gpio_get                
+    pop     {pc}     
 
 @ Subroutine to toggle the LED GPIO pin value
 sub_toggle:
