@@ -10,6 +10,8 @@
 .equ    LED_VALUE_ON, 1         @ Specify the value that turns the LED "on"
 .equ    LED_VALUE_OFF, 0        @ Specify the value that turns the LED "off"
 
+.equ    BUTTON_GPIO_PIN, 21     @ Specify the physical GPIO pin that the button is connected to
+.equ    BUTTON_GPIO_DIR, 0      @ Specify the direction that we want to set the GPIO pin to
 
 @ Entry point to the ASM portion of the program
 main_asm:
@@ -17,6 +19,11 @@ main_asm:
     bl      asm_gpio_init               @ Call the subroutine to initialise the GPIO pin specified by r0
     movs    r0, #LED_GPIO_PIN           @ This value is the GPIO LED pin on the PI PICO board
     movs    r1, #LED_GPIO_OUT           @ We want this GPIO pin to be setup as an output pin
+    bl      asm_gpio_set_dir            @ Call the subroutine to set the GPIO pin specified by r0 to state specified by r1
+    movs    r0, #BUTTON_GPIO_PIN        @ This value is the GPIO button pin on the PI PICO board
+    bl      asm_gpio_init               @ Call the subroutine to initialise the GPIO pin specified by r0
+    movs    r0, #BUTTON_GPIO_PIN        @ This value is the GPIO LED pin on the PI PICO board
+    movs    r1, #BUTTON_GPIO_DIR        @ We want this GPIO pin to be setup as an output pin
     bl      asm_gpio_set_dir            @ Call the subroutine to set the GPIO pin specified by r0 to state specified by r1
 loop:
     ldr     r0, =SLEEP_TIME             @ Set the value of SLEEP_TIME we want to wait for
