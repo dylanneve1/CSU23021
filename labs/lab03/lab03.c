@@ -1,4 +1,6 @@
 #include "hardware/gpio.h"
+#include "pico/stdlib.h"
+#include <stdio.h>
 
 // Must declare the main assembly entry point before use.
 void main_asm();
@@ -61,8 +63,11 @@ void asm_gpio_put(int pin, int value) {
  * @return int      Returns exit-status zero on completion.
  */
 int main() {
+    stdio_init_all();
+    printf("main:       initialized with stdio_init_all()\n");
 
     // Jump into the main assembly code subroutine.
+    printf("main:       jumping into main_asm()\n");
     main_asm();
 
     // Returning zero indicates everything went okay.
