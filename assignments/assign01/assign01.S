@@ -214,14 +214,25 @@ alarm_isr:
     ldr     r0, =lstate                                     @ Load the address of lstate, the current en state
     ldr     r0, [r0]                                        @ Load value of lstate into r0
     cmp     r0, #0                                          @ If lstate is equal to 0, en button has been pressed and we do not toggle
-    beq     alarm_isr_end                                   @ Branch to alarm_isr_end because en button is pressed
+    beq     alarm_isr_en                                    @ Branch to alarm_isr_end because en button is pressed
 @------ READ LED PIN ---------------------------------------
     movs    r0, #GPIO_LED_PIN                               @ Set the LED GPIO pin number to r0 for use by asm_gpio_get
     bl      asm_gpio_get                                    @ Get current the value of the LED GPIO pin
 @------ CONDITIONAL LOGIC ----------------------------------
     cmp     r0, #LED_VAL_OFF                                @ Check if the LED GPIO pin value is "off"
     beq     led_set_on                                      @ If it is "off" then then jump code to to turn it on
+    b       led_set_off                                     @ Otherwise jump to led_set_off
 @-----------------------------------------------------------
+
+alarm_isr_en:
+@------ CHECK LED STATE ------------------------------------
+    movs    r0, #GPIO_LED_PIN                               @ Set the LED GPIO pin number to r0 for use by asm_gpio_get
+    bl      asm_gpio_get                                    @ Get current the value of the LED GPIO pin
+@------ ENSURE LED OFF -------------------------------------
+    cmp     r0, #LED_VAL_ON                                 @ Check if the LED GPIO pin value is "on"
+    beq     led_set_off                                     @ If it is "on" then then jump code to to turn it off
+@-----------------------------------------------------------
+    b       alarm_isr_end                                   @ Jump to alarm_isr_end
 
 /**
  * @brief LED set OFF
@@ -247,6 +258,8 @@ led_set_on:
     bl      printf                                          @ Print the statement loaded into r0
 @------ SET DESIRED STATE ----------------------------------
     movs    r1, #LED_VAL_ON                                 @ The LED is currently "off" so we want to turn it "on"
+@------ JUMP TO SET STATE ----------------------------------
+    b       led_set_state                                   @ Jump to portion of code where we set the state of the LED
 @-----------------------------------------------------------
 
 /**
@@ -258,6 +271,7 @@ led_set_state:
     movs    r0, #GPIO_LED_PIN                               @ Set the LED GPIO pin number to r0 for use by asm_gpio_put
     bl      asm_gpio_put                                    @ Update the the value of the LED GPIO pin (based on value in r1)
 @-----------------------------------------------------------
+    b       alarm_isr_end                                   @ Jump to alarm_isr_end
 
 alarm_isr_end:
     bl      set_alarm                                       @ Call the set_alarm subroutine to reset the flash rate
