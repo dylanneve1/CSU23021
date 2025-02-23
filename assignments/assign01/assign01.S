@@ -52,7 +52,7 @@ main_asm:
  *        Sets up LED on pin 25 as an output
  */
 led_setup:
-    push    {lr}
+    push    {lr}                                            @ Store the link register to the stack
 @------ DEBUG PRINT ----------------------------------------
     ldr     r0, =setup_led_msg                              @ Load LED setup message into r0
     bl      printf                                          @ Branch to printf
@@ -108,7 +108,7 @@ gpio_setup:
     ldr     r1, =gpio_isr                                   @ Load the address of gpio_isr into r1 
     str     r1, [r2]                                        @ Store this value into r2 (base address for RP2040 + GPIO offset), i.e. the gpio isr address
     movs    r1, #1                                          @ Move the value 1 into r1 where bit 13 is logical HIGH
-    lsls    r1, #13
+    lsls    r1, #13                                         @ Shift r1 by 13 bits
     ldr     r2, =(PPB_BASE + M0PLUS_NVIC_ICPR_OFFSET)       @ Load the address for the NVIC Interrupt Clear Pending register
     str     r1, [r2]                                        @ Store the value in r1 into the ICPR - bit 13 as the GPIO is at int #13
     ldr     r2, =(PPB_BASE + M0PLUS_NVIC_ISER_OFFSET)       @ Load the address for the NVIC  Interrupt Set Enable register
@@ -121,19 +121,21 @@ gpio_setup:
  *        Sets up buttons on pin 20, 21 and 22 as inputs
  */
 button_setup:
-    push    {lr}
+    push    {lr}                                            @ Store the link register to the stack
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =setup_ebutton_msg
-    bl      printf
+    ldr     r0, =setup_ebutton_msg                          @ Load setup_ebutton_msg into r0
+    bl      printf                                          @ Branch to printf to print r0
 @------ ENABLE BUTTON --------------------------------------
     ldr     r0, =GPIO_BTN_EN                                @ Load Enable Pin number into r0
     bl      asm_gpio_init                                   @ Initialize GPIO pin
     ldr     r0, =GPIO_BTN_EN                                @ Load Enable Pin number into r0
     ldr     r1, =GPIO_DIR_IN                                @ Load direction, input, into r1
     bl      asm_gpio_set_dir                                @ Set Enable as input
+    ldr     r0, =GPIO_BTN_EN                                @ Load Enable Pin number into r0
+    bl      asm_gpio_set_irq                                @ Enable the falling edge irq for our pin    
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =setup_ubutton_msg
-    bl      printf
+    ldr     r0, =setup_ubutton_msg                          @ Load setup_ubutton_msg into r0
+    bl      printf                                          @ Branch to printf to print r0
 @------ UP BUTTON ------------------------------------------
     ldr     r0, =GPIO_BTN_UP                                @ Load Up Pin number into r0
     bl      asm_gpio_init                                   @ Initialize GPIO pin
@@ -141,8 +143,8 @@ button_setup:
     ldr     r1, =GPIO_DIR_IN                                @ Load direction, input, into r1
     bl      asm_gpio_set_dir                                @ Set Up as input
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =setup_dbutton_msg
-    bl      printf
+    ldr     r0, =setup_dbutton_msg                          @ Load setup_dbutton_msg into r0
+    bl      printf                                          @ Branch to printf to print r0
 @------ DOWN BUTTON ----------------------------------------
     ldr     r0, =GPIO_BTN_DN                                @ Load Down Pin number into r0
     bl      asm_gpio_init                                   @ Initialize GPIO pin
@@ -162,25 +164,63 @@ main_loop:
 .thumb_func
 gpio_isr:
     push    {lr}                                            @ Store the link register to the stack 
+@------ DEBUG PRINT ----------------------------------------
+    ldr     r0, =alarm_isr_msg                              @ Load the address of the "button pressed" button message
+    bl      printf                                          @ Print the "button pressed" button message
+@------ LOAD INTERRUPT REGISTER ----------------------------
+    ldr     r0, =IO_BANK0_BASE                              @ Load the address of the interrupt register
+    ldr     r1, =IO_BANK0_PROC0_INTS2_OFFSET                @ Load IO_BANK0_PROC0_INTS2_OFFSET into r1
+    adds    r0, r1                                          @ Add r1 and r0 and store in r0
+    ldr     r0, [r0]                                        @ Load the value of the interrupt register into r0
+@------ ENABLE BUTTON EVENT --------------------------------
+    movs    r1, r0                                          @ Copy the value of the interrupt register into r1
+    ldr     r2, =GPIO_BTN_EN_MSK                            @ Load the mask for the "enter" button into r2
+    ands    r0, r2                                          @ Check if the "enter" button interrupt is active
+    cmp     r0, #0                                          @ Compare the result with 0
+    bne     enable_button_event                             @ If not equal to 0, jump to btn_en
+@-----------------------------------------------------------
     pop     {pc}                                            @ Pop the link register from the stack to the program counter
+
+enable_button_event:
+@------ TOGGLE LSTATE --------------------------------------
+    ldr     r0, =lstate                                     @ Load the address of the state variable into r0
+    ldr     r4, [r0]                                        @ Load the current state value
+    movs    r2, #1                                          @ Load 1 into r2
+    subs    r4, r2, r4                                      @ Compute 1 - r4, toggling the state
+    str     r4, [r0]                                        @ Store the updated state value
+@------ LOAD MASK ------------------------------------------
+    ldr     r5, =GPIO_BTN_EN_MSK                            @ Load the mask for the "enter" button into r5
+@-----------------------------------------------------------
+    b       end_button_event                                @ Jump to the end of button handling 
+
+end_button_event:
+@------ CLEAR INTERRUPT ------------------------------------
+    ldr     r2, =(IO_BANK0_BASE + IO_BANK0_INTR2_OFFSET)    @ Load the address of the IO bank into r2
+    str     r5, [r2]                                        @ Store the button mask in the interrupt register
+@-----------------------------------------------------------
+    pop     {pc}                                            @ Restore the program counter and return
 
 .thumb_func
 alarm_isr:
     push    {lr}                                            @ Store the link register to the stack
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =alarm_isr_msg
-    bl      printf
+    ldr     r0, =alarm_isr_msg                              @ Load alarm_isr_msg into r0
+    bl      printf                                          @ Branch to printf to print r0
 @------ CLEAR ALARM INTERRUPT FLAG -------------------------
     ldr     r2, =TIMER_BASE                                 @ Load timer base address into r2
     movs    r1, #1                                          @ Set alarm interrupt flag
     str     r1, [r2, #TIMER_INTR_OFFSET]                    @ Clear interrupt by writing to TIMER register
+@------ SKIP WHEN EN BUTTON --------------------------------
+    ldr     r0, =lstate                                     @ Load the address of lstate, the current en state
+    ldr     r0, [r0]                                        @ Load value of lstate into r0
+    cmp     r0, #0                                          @ If lstate is equal to 0, en button has been pressed and we do not toggle
+    beq     alarm_isr_end                                   @ Branch to alarm_isr_end because en button is pressed
 @------ READ LED PIN ---------------------------------------
     movs    r0, #GPIO_LED_PIN                               @ Set the LED GPIO pin number to r0 for use by asm_gpio_get
-    bl      asm_gpio_get                                    @ Get current the value of the LED GPIO pin (returns to r0)
+    bl      asm_gpio_get                                    @ Get current the value of the LED GPIO pin
 @------ CONDITIONAL LOGIC ----------------------------------
     cmp     r0, #LED_VAL_OFF                                @ Check if the LED GPIO pin value is "off"
     beq     led_set_on                                      @ If it is "off" then then jump code to to turn it on
-    b       led_set_off
 @-----------------------------------------------------------
 
 /**
@@ -228,10 +268,11 @@ alarm_isr_end:
 setup_ebutton_msg: .asciz "button_setup: setting up EN button on pin 21\n"
 setup_ubutton_msg: .asciz "button_setup: setting up UP button on pin 21\n"
 setup_dbutton_msg: .asciz "button_setup: setting up DOWN button on pin 21\n"
+event_msg:         .asciz "gpio_isr:     event has occurred!\n"
 setup_led_msg:     .asciz "led_setup:    setting up LED on pin 25\n"
 led_on_msg:        .asciz "led_set_on:   toggling LED on\n"
 led_off_msg:       .asciz "led_set_off:  toggling LED off\n"
-alarm_isr_msg      .asciz "alarm_isr:    timer triggered!\n"
+alarm_isr_msg:     .asciz "alarm_isr:    timer triggered!\n"
 
 .data
 lstate:    .word   DFLT_STATE_STRT
