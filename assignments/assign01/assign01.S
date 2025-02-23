@@ -178,7 +178,7 @@ gpio_isr:
     ldr     r2, =GPIO_BTN_EN_MSK                            @ Load the mask for the "enter" button into r2
     ands    r0, r2                                          @ Check if the "enter" button interrupt is active
     cmp     r0, #0                                          @ Compare the result with 0
-    bne     enable_button_event                             @ If not equal to 0, jump to btn_en
+    bne     enable_button_event                             @ If not equal to 0, jump to enable_button_event
 @------ UP BUTTON EVENT ------------------------------------
     movs    r0, r1                                          @ Copy the value of the interrupt register into r0
     ldr     r2, =GPIO_BTN_UP_MSK                            @ Load the mask for the "up" button into r2
@@ -204,10 +204,32 @@ enable_button_event:
     movs    r2, #1                                          @ Load 1 into r2
     subs    r4, r2, r4                                      @ Compute 1 - r4, toggling the state
     str     r4, [r0]                                        @ Store the updated state value
+@------ UPDATE BUTTON STATE --------------------------------
+    cmp     r4, #0                                          @ Check if LED should be disabled
+    beq     led_update_event                                @ If so branch to led_update_event
 @------ LOAD MASK ------------------------------------------
     ldr     r5, =GPIO_BTN_EN_MSK                            @ Load the mask for the "enter" button into r5
 @-----------------------------------------------------------
     b       end_button_event                                @ Jump to the end of button handling 
+
+led_update_event:
+@------ CHECK LED STATE ------------------------------------
+    movs    r0, #GPIO_LED_PIN                               @ Set the LED GPIO pin number to r0 for use by asm_gpio_get
+    bl      asm_gpio_get                                    @ Get current the value of the LED GPIO pin
+    cmp     r0, #LED_VAL_OFF                                @ Check if the LED GPIO pin value is "off"
+    beq     led_update_event_helper                         @ If it is "off" then then jump to led_update_event_helper
+@------ UPDATE LED STATE -----------------------------------
+    movs    r1, #LED_VAL_OFF                                @ The LED is currently "on" so we want to turn it "off"
+    movs    r0, #GPIO_LED_PIN                               @ Set the LED GPIO pin number to r0 for use by asm_gpio_put
+    bl      asm_gpio_put                                    @ Update the the value of the LED GPIO pin (based on value in r1)
+@-----------------------------------------------------------
+    b       led_update_event_helper
+
+led_update_event_helper:
+@------ LOAD MASK ------------------------------------------
+    ldr     r5, =GPIO_BTN_EN_MSK                            @ Load the mask for the "enter" button into r5
+@-----------------------------------------------------------
+    b       end_button_event                                @ Jump to the end of button handling
 
 up_button_event:
 @------ DEBUG PRINT ----------------------------------------
