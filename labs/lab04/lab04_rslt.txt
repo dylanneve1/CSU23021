@@ -1,0 +1,98 @@
+(gdb) info registers
+r0             0x200005e0          536872416
+r1             0x0                 0
+r2             0x40054000          1074085888
+r3             0xd0000128          -805306072
+r4             0x4c4dfe            5000702
+r5             0x0                 0
+r6             0x4c4df8            5000696
+r7             0x0                 0
+r8             0x0                 0
+r9             0xffffffff          -1
+r10            0xffffffff          -1
+r11            0xffffffff          -1
+r12            0x0                 0
+sp             0x20041fe0          0x20041fe0
+lr             0x4c4df8            5000696
+pc             0x10000cc6          0x10000cc6 <sleep_ms+150>
+xPSR           0x21000000          553648128
+msp            0x20041fe0          0x20041fe0
+psp            0xfffffffc          0xfffffffc
+primask        0x0                 0
+basepri        0x0                 0
+faultmask      0x0                 0
+control        0x0                 0
+
+(gdb) disassemble main_asm, +26
+Dump of assembler code from 0x10000360 to 0x1000037a:
+   0x10000360 <main_asm+0>:	movs	r0, #25
+   0x10000362 <main_asm+2>:	bl	0x10000310 <asm_gpio_init>
+   0x10000366 <main_asm+6>:	movs	r0, #25
+   0x10000368 <main_asm+8>:	movs	r1, #1
+   0x1000036a <main_asm+10>:	bl	0x10000318 <asm_gpio_set_dir>
+   0x1000036e <loop+0>:	ldr	r0, [pc, #36]	@ (0x10000394 <led_set_state+8>)
+   0x10000370 <loop+2>:	bl	0x10000c30 <sleep_ms>
+   0x10000374 <loop+6>:	bl	0x1000037a <sub_toggle>
+   0x10000378 <loop+10>:	b.n	0x1000036e <loop>
+End of assembler dump.
+
+- What is the entry point address (in hex) of the blink_asm application? Shortly explain how you get it.
+
+The main entry point address of the elf is 0x100001e9, this can be found using readelf as shown below.
+
+lab04 git:(main) readelf -h lab04.elf
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           ARM
+  Version:                           0x1
+  Entry point address:               0x100001e9
+  Start of program headers:          52 (bytes into file)
+  Start of section headers:          30244 (bytes into file)
+  Flags:                             0x5000200, Version5 EABI, soft-float ABI
+  Size of this header:               52 (bytes)
+  Size of program headers:           32 (bytes)
+  Number of program headers:         3
+  Size of section headers:           40 (bytes)
+  Number of section headers:         20
+  Section header string table index: 19
+
+- What is the entry point address (in hex) of the “main_asm” function? Shortly explain how you get it.
+
+The address of the "main_asm" function is 0x10000360, this can be found using gdb by running "info address main_asm" or by running "disassemble main" and observing the branch.
+
+(gdb) info address main_asm
+Symbol "main_asm" is at 0x10000360 in a file compiled without debugging.
+
+(gdb) disassemble main
+Dump of assembler code for function main:
+   0x10000350 <+0>:	push	{r4, lr}
+   0x10000352 <+2>:	bl	0x10000360 <main_asm>
+   0x10000356 <+6>:	movs	r0, #0
+   0x10000358 <+8>:	pop	{r4, pc}
+End of assembler dump.
+
+Describe each of the differences between the assembly that was written for the main_asm function and the version that was executed according to GDB.
+
+(gdb) disassemble main_asm
+Dump of assembler code for function main_asm:
+   0x10000360 <+0>:  movs  r0, #25
+   0x10000362 <+2>:  bl 0x10000310 <asm_gpio_init>
+   0x10000366 <+6>:  movs  r0, #25
+   0x10000368 <+8>:  movs  r1, #1
+   0x1000036a <+10>: bl 0x10000318 <asm_gpio_set_dir>
+End of assembler dump.
+
+main_asm:
+    movs    r0, #LED_GPIO_PIN           @ This value is the GPIO LED pin on the PI PICO board
+    bl      asm_gpio_init               @ Call the subroutine to initialise the GPIO pin specified by r0
+    movs    r0, #LED_GPIO_PIN           @ This value is the GPIO LED pin on the PI PICO board
+    movs    r1, #LED_GPIO_OUT           @ We want this GPIO pin to be setup as an output pin
+    bl      asm_gpio_set_dir            @ Call the subroutine to set the GPIO pin specified by r0 to state specified by r1
+
+The most obvious difference is the disassembled code has no comments, also references such as "LED_GPIO_PIN" are replaced with direct values, this obfuscates the code. The branch instructions also point to specific memory addresses now.
