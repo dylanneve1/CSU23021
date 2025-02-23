@@ -218,6 +218,8 @@ led_set_state:
     movs    r0, #GPIO_LED_PIN                               @ Set the LED GPIO pin number to r0 for use by asm_gpio_put
     bl      asm_gpio_put                                    @ Update the the value of the LED GPIO pin (based on value in r1)
 @-----------------------------------------------------------
+
+alarm_isr_end:
     bl      set_alarm                                       @ Call the set_alarm subroutine to reset the flash rate
     pop     {pc}                                            @ Pop the link register from the stack to the program counter
 
