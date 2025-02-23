@@ -242,6 +242,9 @@ up_button_event:
     ldr     r0, [r0]                                        @ Load value of lstate into r0
     cmp     r0, #0                                          @ If lstate is equal to 0, en button has been pressed and we do not toggle
     beq     reset_timer_event                               @ Branch to reset_time_event because en button is pressed
+@------ DEBUG PRINT ----------------------------------------
+    movs    r0, #12                                         @ Load the mapping for double_event_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ HALF LTIMER ----------------------------------------
     ldr     r0, =ltimer                                     @ Load the address of ltimer
     ldr     r1, [r0]                                        @ Load the current ltimer value
@@ -261,6 +264,9 @@ down_button_event:
     ldr     r0, [r0]                                        @ Load value of lstate into r0
     cmp     r0, #0                                          @ If lstate is equal to 0, en button has been pressed and we do not toggle
     beq     reset_timer_event                               @ Branch to reset_timer_event because en button is pressed
+@------ DEBUG PRINT ----------------------------------------
+    movs    r0, #13                                         @ Load the mapping for halve_event_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ DOUBLE LTIMER --------------------------------------
     ldr     r0, =ltimer                                     @ Load the address of ltimer
     ldr     r1, [r0]                                        @ Load the current ltimer value
