@@ -198,6 +198,9 @@ gpio_isr:
     pop     {pc}                                            @ Pop the link register from the stack to the program counter
 
 enable_button_event:
+@------ DEBUG PRINT ----------------------------------------
+    ldr     r0, =event_eb_msg                               @ Load the asciz event_eb_msg into r0
+    bl      printf                                          @ Print the statement loaded into r0
 @------ TOGGLE LSTATE --------------------------------------
     ldr     r0, =lstate                                     @ Load the address of the state variable into r0
     ldr     r4, [r0]                                        @ Load the current state value
@@ -210,26 +213,53 @@ enable_button_event:
     b       end_button_event                                @ Jump to the end of button handling 
 
 up_button_event:
+@------ DEBUG PRINT ----------------------------------------
+    ldr     r0, =event_ub_msg                               @ Load the asciz event_ub_msg into r0
+    bl      printf                                          @ Print the statement loaded into r0
+@------ LOAD MASK ------------------------------------------
+    ldr     r5, =GPIO_BTN_UP_MSK                            @ Load the mask for the "up" button into r5
+@------ SKIP WHEN EN BUTTON --------------------------------
+    ldr     r0, =lstate                                     @ Load the address of lstate, the current en state
+    ldr     r0, [r0]                                        @ Load value of lstate into r0
+    cmp     r0, #0                                          @ If lstate is equal to 0, en button has been pressed and we do not toggle
+    beq     reset_timer_event                               @ Branch to reset_time_event because en button is pressed
 @------ DOUBLE LTIMER --------------------------------------
     ldr     r0, =ltimer                                     @ Load the address of ltimer
     ldr     r1, [r0]                                        @ Load the current ltimer value
     lsls    r1, r1, #1                                      @ Double the value by shifting left by 1 (multiply by 2)
     str     r1, [r0]                                        @ Store the updated value back to ltimer
-@------ LOAD MASK ------------------------------------------
-    ldr     r5, =GPIO_BTN_UP_MSK                            @ Load the mask for the "up" button into r5
 @-----------------------------------------------------------
     b       end_button_event                                @ Jump to the end of button handling  
 
 down_button_event:
+@------ DEBUG PRINT ----------------------------------------
+    ldr     r0, =event_db_msg                               @ Load the asciz event_db_msg into r0
+    bl      printf                                          @ Print the statement loaded into r0
+@------ LOAD MASK ------------------------------------------
+    ldr     r5, =GPIO_BTN_DN_MSK                            @ Load the mask for the "down" button into r5
+@------ SKIP WHEN EN BUTTON --------------------------------
+    ldr     r0, =lstate                                     @ Load the address of lstate, the current en state
+    ldr     r0, [r0]                                        @ Load value of lstate into r0
+    cmp     r0, #0                                          @ If lstate is equal to 0, en button has been pressed and we do not toggle
+    beq     reset_timer_event                               @ Branch to reset_timer_event because en button is pressed
 @------ HALF LTIMER ----------------------------------------
     ldr     r0, =ltimer                                     @ Load the address of ltimer
     ldr     r1, [r0]                                        @ Load the current ltimer value
     lsrs    r1, r1, #1                                      @ Double the value by shifting left by 1 (multiply by 2)
     str     r1, [r0]                                        @ Store the updated value back to ltimer
-@------ LOAD MASK ------------------------------------------
-    ldr     r5, =GPIO_BTN_DN_MSK                            @ Load the mask for the "down" button into r5
 @-----------------------------------------------------------
     b       end_button_event                                @ Jump to the end of button handling  
+
+reset_timer_event:
+@------ DEBUG PRINT ----------------------------------------
+    ldr     r0, =reset_timer_msg                            @ Load the asciz reset_timer_msg into r0
+    bl      printf                                          @ Print the statement loaded into r0
+@------ RESET LTIMER ---------------------------------------
+    ldr     r0, =ltimer                                     @ Load the address of ltimer
+    ldr     r1, =DFLT_ALARM_TIME                            @ Load value of DFLT_ALARM_TIME into r1
+    str     r1, [r0]                                        @ Store the reset value back to ltimer
+@-----------------------------------------------------------
+    b       end_button_event                                @ Jump to the end of button handling 
 
 end_button_event:
 @------ CLEAR INTERRUPT ------------------------------------
@@ -317,14 +347,18 @@ alarm_isr_end:
 
 
 .align 4
-setup_ebutton_msg: .asciz "button_setup: setting up EN button on pin 21\n"
-setup_ubutton_msg: .asciz "button_setup: setting up UP button on pin 21\n"
-setup_dbutton_msg: .asciz "button_setup: setting up DOWN button on pin 21\n"
-event_msg:         .asciz "gpio_isr:     event has occurred!\n"
-setup_led_msg:     .asciz "led_setup:    setting up LED on pin 25\n"
-led_on_msg:        .asciz "led_set_on:   toggling LED on\n"
-led_off_msg:       .asciz "led_set_off:  toggling LED off\n"
-alarm_isr_msg:     .asciz "alarm_isr:    timer triggered!\n"
+setup_ebutton_msg: .asciz "button_setup:        setting up EN button on pin 21\n"
+setup_ubutton_msg: .asciz "button_setup:        setting up UP button on pin 21\n"
+setup_dbutton_msg: .asciz "button_setup:        setting up DOWN button on pin 21\n"
+event_msg:         .asciz "gpio_isr:            an event has occurred!\n"
+event_eb_msg:      .asciz "enable_button_event: enable button has been pressed\n"
+event_ub_msg:      .asciz "up_button_event:     up button has been pressed\n"
+event_db_msg:      .asciz "down_button_event:   down button has been pressed\n"
+setup_led_msg:     .asciz "led_setup:           setting up LED on pin 25\n"
+led_on_msg:        .asciz "led_set_on:          toggling LED state to on\n"
+led_off_msg:       .asciz "led_set_off:         toggling LED state to off\n"
+alarm_isr_msg:     .asciz "alarm_isr:           timer triggered, resetting alarm\n"
+reset_timer_msg:   .asciz "reset_timer_event:   timer reset to DFLT_ALARM_TIME\n"
 
 .data
 lstate:    .word   DFLT_STATE_STRT
