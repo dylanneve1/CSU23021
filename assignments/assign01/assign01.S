@@ -168,9 +168,6 @@ main_loop:
 .thumb_func
 gpio_isr:
     push    {lr}                                            @ Store the link register to the stack 
-@------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =alarm_isr_msg                              @ Load the address of the "button pressed" button message
-    bl      printf                                          @ Print the "button pressed" button message
 @------ LOAD INTERRUPT REGISTER ----------------------------
     ldr     r0, =IO_BANK0_BASE                              @ Load the address of the interrupt register
     ldr     r1, =IO_BANK0_PROC0_INTS2_OFFSET                @ Load IO_BANK0_PROC0_INTS2_OFFSET into r1
@@ -223,10 +220,10 @@ up_button_event:
     ldr     r0, [r0]                                        @ Load value of lstate into r0
     cmp     r0, #0                                          @ If lstate is equal to 0, en button has been pressed and we do not toggle
     beq     reset_timer_event                               @ Branch to reset_time_event because en button is pressed
-@------ DOUBLE LTIMER --------------------------------------
+@------ HALF LTIMER ----------------------------------------
     ldr     r0, =ltimer                                     @ Load the address of ltimer
     ldr     r1, [r0]                                        @ Load the current ltimer value
-    lsls    r1, r1, #1                                      @ Double the value by shifting left by 1 (multiply by 2)
+    lsrs    r1, r1, #1                                      @ Half the value by shifting right by 1 (divide by 2)
     str     r1, [r0]                                        @ Store the updated value back to ltimer
 @-----------------------------------------------------------
     b       end_button_event                                @ Jump to the end of button handling  
@@ -242,10 +239,10 @@ down_button_event:
     ldr     r0, [r0]                                        @ Load value of lstate into r0
     cmp     r0, #0                                          @ If lstate is equal to 0, en button has been pressed and we do not toggle
     beq     reset_timer_event                               @ Branch to reset_timer_event because en button is pressed
-@------ HALF LTIMER ----------------------------------------
+@------ DOUBLE LTIMER --------------------------------------
     ldr     r0, =ltimer                                     @ Load the address of ltimer
     ldr     r1, [r0]                                        @ Load the current ltimer value
-    lsrs    r1, r1, #1                                      @ Double the value by shifting left by 1 (multiply by 2)
+    lsls    r1, r1, #1                                      @ Double the value by shifting left by 1 (multiply by 2)
     str     r1, [r0]                                        @ Store the updated value back to ltimer
 @-----------------------------------------------------------
     b       end_button_event                                @ Jump to the end of button handling  
@@ -271,9 +268,6 @@ end_button_event:
 .thumb_func
 alarm_isr:
     push    {lr}                                            @ Store the link register to the stack
-@------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =alarm_isr_msg                              @ Load alarm_isr_msg into r0
-    bl      printf                                          @ Branch to printf to print r0
 @------ CLEAR ALARM INTERRUPT FLAG -------------------------
     ldr     r2, =TIMER_BASE                                 @ Load timer base address into r2
     movs    r1, #1                                          @ Set alarm interrupt flag
@@ -348,8 +342,8 @@ alarm_isr_end:
 
 .align 4
 setup_ebutton_msg: .asciz "button_setup:        setting up EN button on pin 21\n"
-setup_ubutton_msg: .asciz "button_setup:        setting up UP button on pin 21\n"
-setup_dbutton_msg: .asciz "button_setup:        setting up DOWN button on pin 21\n"
+setup_ubutton_msg: .asciz "button_setup:        setting up UP button on pin 22\n"
+setup_dbutton_msg: .asciz "button_setup:        setting up DOWN button on pin 20\n"
 event_msg:         .asciz "gpio_isr:            an event has occurred!\n"
 event_eb_msg:      .asciz "enable_button_event: enable button has been pressed\n"
 event_ub_msg:      .asciz "up_button_event:     up button has been pressed\n"
@@ -357,7 +351,6 @@ event_db_msg:      .asciz "down_button_event:   down button has been pressed\n"
 setup_led_msg:     .asciz "led_setup:           setting up LED on pin 25\n"
 led_on_msg:        .asciz "led_set_on:          toggling LED state to on\n"
 led_off_msg:       .asciz "led_set_off:         toggling LED state to off\n"
-alarm_isr_msg:     .asciz "alarm_isr:           timer triggered, resetting alarm\n"
 reset_timer_msg:   .asciz "reset_timer_event:   timer reset to DFLT_ALARM_TIME\n"
 
 .data
