@@ -14,6 +14,8 @@
 #define led_on_msg           "led_set_on:            toggling LED state to on\n"
 #define led_off_msg          "led_set_off:           toggling LED state to off\n"
 #define reset_timer_msg      "reset_timer_event:     timer reset to DFLT_ALARM_TIME\n"
+#define double_event_msg     "up_button_event:       doubling the LED flash rate\n"
+#define half_event_msg       "down_button_event:     halving the LED flash rate\n"
 
 // Declare the main assembly code entry point.
 void main_asm();
@@ -53,6 +55,12 @@ void log_message(int code) {
             break;
         case 11:
             printf("%s", reset_timer_msg);
+            break;
+        case 12:
+            printf("%s", double_event_msg);
+            break;
+        case 13:
+            printf("%s", half_event_msg);
             break;
         default:
             printf("Unknown log event: %d\n", code);
