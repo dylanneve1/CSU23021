@@ -38,10 +38,13 @@
  */
 main_asm:
 @------ INITIAL SETUP--------------------------------------
-        bl      led_setup                                   @ Branch to led_setup subroutine
-        bl      button_setup                                @ Branch to button_setup subroutine
+    bl      led_setup                                       @ Branch to led_setup
+    bl      button_setup                                    @ Branch to button_setup
+    bl      alarm_setup                                     @ Branch to alarm_setup
+    bl      set_alarm                                       @ Branch to set_alarm
+    bl      gpio_setup                                      @ Branch to gpio_setup
 @-----------------------------------------------------------
-        bl      main_loop                                   @ Branch to main loop
+    bl      main_loop                                       @ Branch to main_loop
 @-----------------------------------------------------------
 
 /**
@@ -49,18 +52,18 @@ main_asm:
  *        Sets up LED on pin 25 as an output
  */
 led_setup:
-        push    {lr}
+    push    {lr}
 @------ DEBUG PRINT ----------------------------------------
-        ldr     r0, =setup_led_msg
-        bl      printf
+    ldr     r0, =setup_led_msg                              @ Load LED setup message into r0
+    bl      printf                                          @ Branch to printf
 @------ ENABLE LED -----------------------------------------
-        ldr     r0, =GPIO_LED_PIN                           @ Load LED Pin number into r0
-        bl      asm_gpio_init                               @ Initialize GPIO pin
-        ldr     r0, =GPIO_LED_PIN
-        ldr     r1, =GPIO_DIR_OUT
-        bl      asm_gpio_set_dir                            @ Set LED as output
+    ldr     r0, =GPIO_LED_PIN                               @ Load LED Pin number into r0
+    bl      asm_gpio_init                                   @ Initialize GPIO pin
+    ldr     r0, =GPIO_LED_PIN                               @ Load LED Pin number into r0
+    ldr     r1, =GPIO_DIR_OUT                               @ Load LED Pin direction into r1
+    bl      asm_gpio_set_dir                                @ Branch to asm_gpio_set_dir
 @-----------------------------------------------------------
-        pop     {pc}
+    pop     {pc}
 
 /**
  * @brief Alarm Setup
@@ -68,59 +71,103 @@ led_setup:
  */
 alarm_setup:
 @------ ENABLE ALARM ---------------------------------------
+    ldr     r2, =(PPB_BASE + M0PLUS_VTOR_OFFSET)            @ Load the address of the Vector Table Offset Register into r2  
+    ldr     r1, [r2]                                        @ Load this value into r2 
+    movs    r2, #ALRM_ISR_OFFSET                            @ Move the ALARM0 offset into r2 
+    add     r2, r1                                          @ Add the Alarm0 offset to the base address of Vector Table 
+    ldr     r0, =alarm_isr                                  @ Load the address of subtoggle_led into r0 
+    str     r0, [r2]                                        @ Store the value into r2 (base address for RP2040 + Alarm0 offset), i.e. the alarm isr address
+    movs    r0, #1                                     
+    lsls    r1, #0
+    ldr     r2, =(PPB_BASE + M0PLUS_NVIC_ICPR_OFFSET)       @ Load the address for the NVIC Interrupt Clear Pending register
+    str     r0, [r2]                                        @ Clear any pending interrupts by writing 1 at bit position 0 to the ICPR register
+    ldr     r2, =(PPB_BASE + M0PLUS_NVIC_ISER_OFFSET)       @ Load the address for the NVIC Interrupt Set Enable register
+    str     r0, [r2]                                        @ Enable the alarm 0 interrupt by writing 1 at bit position 0 to the ISER register
 @-----------------------------------------------------------
+    bx      lr 
 
+set_alarm:
+@------ SET ALARM ------------------------------------------
+    ldr     r0, =ltimer                                     @ Load the address of sleeptime into r1
+    ldr     r0, [r0]                                        @ where r0 is the length of the alarm
+    ldr     r2, =TIMER_BASE                                 @ Load the address of the base address for the RP2040 timer component
+    movs    r1, #1                                          @ Move logical HIGH into r1
+    str     r1, [r2, #TIMER_INTE_OFFSET]                    @ Writing 1 at bit position 0 to TIMER interrupt enable register.
+    ldr     r1, [r2, #TIMER_TIMELR_OFFSET]                  @ Load the current time from the timer 
+    add     r1, r0                                          @ Add the current time to sleeptime
+    str     r1, [r2, #TIMER_ALARM0_OFFSET]                  @ Write this new time to the ALARM0 control register
+@-----------------------------------------------------------
+    bx      lr
+
+gpio_setup:
+@------ GPIO SETUP -----------------------------------------
+    ldr     r2, =(PPB_BASE + M0PLUS_VTOR_OFFSET)            @ Load the address of the Vector Table Offset Register into r2  
+    ldr     r1, [r2]                                        @ Load the base address into r1 
+    movs    r2, #GPIO_ISR_OFFSET                            @ Move the GPIO offset into r2 
+    add     r2, r1                                          @ Add the GPIO offset to the base address of the Vector Table 
+    ldr     r1, =gpio_isr                                   @ Load the address of gpio_isr into r1 
+    str     r1, [r2]                                        @ Store this value into r2 (base address for RP2040 + GPIO offset), i.e. the gpio isr address
+    movs    r1, #1                                          @ Move the value 1 into r1 where bit 13 is logical HIGH
+    lsls    r1, #13
+    ldr     r2, =(PPB_BASE + M0PLUS_NVIC_ICPR_OFFSET)       @ Load the address for the NVIC Interrupt Clear Pending register
+    str     r1, [r2]                                        @ Store the value in r1 into the ICPR - bit 13 as the GPIO is at int #13
+    ldr     r2, =(PPB_BASE + M0PLUS_NVIC_ISER_OFFSET)       @ Load the address for the NVIC  Interrupt Set Enable register
+@-----------------------------------------------------------
+    str     r1, [r2]                                        @ Store the value in r1 into the ISER - this enables the GPIO interrupt
+    bx      lr 
 
 /**
  * @brief Button Setup
  *        Sets up buttons on pin 20, 21 and 22 as inputs
  */
 button_setup:
-        push    {lr}
+    push    {lr}
 @------ DEBUG PRINT ----------------------------------------
-        ldr     r0, =setup_button_msg
-        bl      printf
+    ldr     r0, =setup_button_msg
+    bl      printf
 @------ ENABLE BUTTON --------------------------------------
-        ldr     r0, =GPIO_BTN_EN                            @ Load Enable Pin number into r0
-        bl      asm_gpio_init                               @ Initialize GPIO pin
-        ldr     r0, =GPIO_BTN_EN                            @ Load Enable Pin number into r0
-        ldr     r1, =GPIO_DIR_IN                            @ Load direction, input, into r1
-        bl      asm_gpio_set_dir                            @ Set Enable as input
+    ldr     r0, =GPIO_BTN_EN                                @ Load Enable Pin number into r0
+    bl      asm_gpio_init                                   @ Initialize GPIO pin
+    ldr     r0, =GPIO_BTN_EN                                @ Load Enable Pin number into r0
+    ldr     r1, =GPIO_DIR_IN                                @ Load direction, input, into r1
+    bl      asm_gpio_set_dir                                @ Set Enable as input
 @------ UP BUTTON ------------------------------------------
-        ldr     r0, =GPIO_BTN_UP                            @ Load Up Pin number into r0
-        bl      asm_gpio_init                               @ Initialize GPIO pin
-        ldr     r0, =GPIO_BTN_UP                            @ Load Up Pin number into r0
-        ldr     r1, =GPIO_DIR_IN                            @ Load direction, input, into r1
-        bl      asm_gpio_set_dir                            @ Set Up as input
+    ldr     r0, =GPIO_BTN_UP                                @ Load Up Pin number into r0
+    bl      asm_gpio_init                                   @ Initialize GPIO pin
+    ldr     r0, =GPIO_BTN_UP                                @ Load Up Pin number into r0
+    ldr     r1, =GPIO_DIR_IN                                @ Load direction, input, into r1
+    bl      asm_gpio_set_dir                                @ Set Up as input
 @------ DOWN BUTTON ----------------------------------------
-        ldr     r0, =GPIO_BTN_DN                            @ Load Down Pin number into r0
-        bl      asm_gpio_init                               @ Initialize GPIO pin
-        ldr     r0, =GPIO_BTN_DN                            @ Load Down Pin number into r0
-        ldr     r1, =GPIO_DIR_IN                            @ Load direction, input, into r1
-        bl      asm_gpio_set_dir                            @ Set Down as input
+    ldr     r0, =GPIO_BTN_DN                                @ Load Down Pin number into r0
+    bl      asm_gpio_init                                   @ Initialize GPIO pin
+    ldr     r0, =GPIO_BTN_DN                                @ Load Down Pin number into r0
+    ldr     r1, =GPIO_DIR_IN                                @ Load direction, input, into r1
+    bl      asm_gpio_set_dir                                @ Set Down as input
 @-----------------------------------------------------------
-        pop     {pc}                                        @ Return to caller
+    pop     {pc}                                            @ Return to caller
 
 /**
  * @brief Main Loop
  *        The main loop of the asm part of the program
  */
 main_loop:
-        bl      main_loop
+    b       main_loop
 
-/**
- * @brief Toggle
- *        Subroutine to toggle the LED value
- */
-sub_toggle:
-        push    {lr}                                        @ Store the link register to the stack as we will call nested subroutines
+.thumb_func
+gpio_isr:
+    push    {lr}                                            @ Store the link register to the stack 
+    pop     {pc}                                            @ Pop the link register from the stack to the program counter
+
+.thumb_func
+alarm_isr:
+    push    {lr}                                            @ Store the link register to the stack
 @------ READ LED PIN ---------------------------------------
-        movs    r0, #GPIO_LED_PIN                           @ Set the LED GPIO pin number to r0 for use by asm_gpio_get
-        bl      asm_gpio_get                                @ Get current the value of the LED GPIO pin (returns to r0)
+    movs    r0, #GPIO_LED_PIN                               @ Set the LED GPIO pin number to r0 for use by asm_gpio_get
+    bl      asm_gpio_get                                    @ Get current the value of the LED GPIO pin (returns to r0)
 @------ CONDITIONAL LOGIC ----------------------------------
-        cmp     r0, #LED_VAL_OFF                            @ Check if the LED GPIO pin value is "off"
-        beq     led_set_on                                  @ If it is "off" then then jump code to to turn it on
-        b       led_set_off
+    cmp     r0, #LED_VAL_OFF                                @ Check if the LED GPIO pin value is "off"
+    beq     led_set_on                                      @ If it is "off" then then jump code to to turn it on
+    b       led_set_off
 @-----------------------------------------------------------
 
 /**
@@ -129,12 +176,12 @@ sub_toggle:
  */
 led_set_off:
 @------ DEBUG PRINT ----------------------------------------
-        ldr     r0, =led_off_msg                            @ Load the asciz led_off_msg into r0
-        bl      printf                                      @ Print the statement loaded into r0
+    ldr     r0, =led_off_msg                                @ Load the asciz led_off_msg into r0
+    bl      printf                                          @ Print the statement loaded into r0
 @------ SET DESIRED STATE ----------------------------------
-        movs    r1, #LED_VAL_OFF                            @ The LED is currently "on" so we want to turn it "off"
+    movs    r1, #LED_VAL_OFF                                @ The LED is currently "on" so we want to turn it "off"
 @------ JUMP TO SET STATE ----------------------------------
-        b       led_set_state                               @ Jump to portion of code where we set the state of the LED
+    b       led_set_state                                   @ Jump to portion of code where we set the state of the LED
 @-----------------------------------------------------------
 
 /**
@@ -143,10 +190,10 @@ led_set_off:
  */
 led_set_on:
 @------ DEBUG PRINT ----------------------------------------
-        ldr     r0, =led_on_msg                             @ Load the asciz led_on_msg into r0
-        bl      printf                                      @ Print the statement loaded into r0
+    ldr     r0, =led_on_msg                                 @ Load the asciz led_on_msg into r0
+    bl      printf                                          @ Print the statement loaded into r0
 @------ SET DESIRED STATE ----------------------------------
-        movs    r1, #LED_VAL_ON                             @ The LED is currently "off" so we want to turn it "on"
+    movs    r1, #LED_VAL_ON                                 @ The LED is currently "off" so we want to turn it "on"
 @-----------------------------------------------------------
 
 /**
@@ -154,11 +201,12 @@ led_set_on:
  *        Subroutine set LED state based on r1
  */
 led_set_state:
-@------ SET LED STATE --------------------------------------------------------
-        movs    r0, #GPIO_LED_PIN                           @ Set the LED GPIO pin number to r0 for use by asm_gpio_put
-        bl      asm_gpio_put                                @ Update the the value of the LED GPIO pin (based on value in r1)
+@------ SET LED STATE --------------------------------------
+    movs    r0, #GPIO_LED_PIN                               @ Set the LED GPIO pin number to r0 for use by asm_gpio_put
+    bl      asm_gpio_put                                    @ Update the the value of the LED GPIO pin (based on value in r1)
 @-----------------------------------------------------------
-        pop     {pc}                                        @ Pop the link register from the stack to the program counter
+    bl      set_alarm                                       @ Call the set_alarm subroutine to reset the flash rate
+    pop     {pc}                                            @ Pop the link register from the stack to the program counter
 
 
 .align 4
@@ -171,4 +219,3 @@ led_off_msg:       .asciz "sub_toggle: toggling LED off\n"
 .data
 lstate:    .word   DFLT_STATE_STRT
 ltimer:    .word   DFLT_ALARM_TIME
-sleeptime: .word   1000                                     @ The amount of time between blinks
