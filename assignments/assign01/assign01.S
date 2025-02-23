@@ -161,6 +161,10 @@ gpio_isr:
 .thumb_func
 alarm_isr:
     push    {lr}                                            @ Store the link register to the stack
+@------ CLEAR ALARM INTERRUPT FLAG -------------------------
+    ldr     r2, =TIMER_BASE                                 @ Load timer base address into r2
+    movs    r1, #1                                          @ Set alarm interrupt flag
+    str     r1, [r2, #TIMER_INTR_OFFSET]                    @ Clear interrupt by writing to TIMER register
 @------ READ LED PIN ---------------------------------------
     movs    r0, #GPIO_LED_PIN                               @ Set the LED GPIO pin number to r0 for use by asm_gpio_get
     bl      asm_gpio_get                                    @ Get current the value of the LED GPIO pin (returns to r0)
