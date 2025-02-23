@@ -123,7 +123,7 @@ gpio_setup:
 button_setup:
     push    {lr}
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =setup_button_msg
+    ldr     r0, =setup_ebutton_msg
     bl      printf
 @------ ENABLE BUTTON --------------------------------------
     ldr     r0, =GPIO_BTN_EN                                @ Load Enable Pin number into r0
@@ -131,12 +131,18 @@ button_setup:
     ldr     r0, =GPIO_BTN_EN                                @ Load Enable Pin number into r0
     ldr     r1, =GPIO_DIR_IN                                @ Load direction, input, into r1
     bl      asm_gpio_set_dir                                @ Set Enable as input
+@------ DEBUG PRINT ----------------------------------------
+    ldr     r0, =setup_ubutton_msg
+    bl      printf
 @------ UP BUTTON ------------------------------------------
     ldr     r0, =GPIO_BTN_UP                                @ Load Up Pin number into r0
     bl      asm_gpio_init                                   @ Initialize GPIO pin
     ldr     r0, =GPIO_BTN_UP                                @ Load Up Pin number into r0
     ldr     r1, =GPIO_DIR_IN                                @ Load direction, input, into r1
     bl      asm_gpio_set_dir                                @ Set Up as input
+@------ DEBUG PRINT ----------------------------------------
+    ldr     r0, =setup_dbutton_msg
+    bl      printf
 @------ DOWN BUTTON ----------------------------------------
     ldr     r0, =GPIO_BTN_DN                                @ Load Down Pin number into r0
     bl      asm_gpio_init                                   @ Initialize GPIO pin
@@ -161,6 +167,9 @@ gpio_isr:
 .thumb_func
 alarm_isr:
     push    {lr}                                            @ Store the link register to the stack
+@------ DEBUG PRINT ----------------------------------------
+    ldr     r0, =alarm_isr_msg
+    bl      printf
 @------ CLEAR ALARM INTERRUPT FLAG -------------------------
     ldr     r2, =TIMER_BASE                                 @ Load timer base address into r2
     movs    r1, #1                                          @ Set alarm interrupt flag
@@ -214,11 +223,13 @@ led_set_state:
 
 
 .align 4
-setup_button_msg:  .asciz "main_asm:   setting up button on pin 21\n"
-setup_led_msg:     .asciz "main_asm:   setting up LED on pin 25\n"
-button_press_msg:  .asciz "main_loop:  button press detected\n"
-led_on_msg:        .asciz "sub_toggle: toggling LED on\n"
-led_off_msg:       .asciz "sub_toggle: toggling LED off\n"
+setup_ebutton_msg: .asciz "button_setup: setting up EN button on pin 21\n"
+setup_ubutton_msg: .asciz "button_setup: setting up UP button on pin 21\n"
+setup_dbutton_msg: .asciz "button_setup: setting up DOWN button on pin 21\n"
+setup_led_msg:     .asciz "led_setup:    setting up LED on pin 25\n"
+led_on_msg:        .asciz "led_set_on:   toggling LED on\n"
+led_off_msg:       .asciz "led_set_off:  toggling LED off\n"
+alarm_isr_msg      .asciz "alarm_isr:    timer triggered!\n"
 
 .data
 lstate:    .word   DFLT_STATE_STRT
