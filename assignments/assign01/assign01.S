@@ -142,6 +142,8 @@ button_setup:
     ldr     r0, =GPIO_BTN_UP                                @ Load Up Pin number into r0
     ldr     r1, =GPIO_DIR_IN                                @ Load direction, input, into r1
     bl      asm_gpio_set_dir                                @ Set Up as input
+    ldr     r0, =GPIO_BTN_UP                                @ Load Enable Pin number into r0
+    bl      asm_gpio_set_irq                                @ Enable the falling edge irq for our pin  
 @------ DEBUG PRINT ----------------------------------------
     ldr     r0, =setup_dbutton_msg                          @ Load setup_dbutton_msg into r0
     bl      printf                                          @ Branch to printf to print r0
@@ -151,6 +153,8 @@ button_setup:
     ldr     r0, =GPIO_BTN_DN                                @ Load Down Pin number into r0
     ldr     r1, =GPIO_DIR_IN                                @ Load direction, input, into r1
     bl      asm_gpio_set_dir                                @ Set Down as input
+    ldr     r0, =GPIO_BTN_DN                                @ Load Enable Pin number into r0
+    bl      asm_gpio_set_irq                                @ Enable the falling edge irq for our pin  
 @-----------------------------------------------------------
     pop     {pc}                                            @ Return to caller
 
@@ -178,6 +182,18 @@ gpio_isr:
     ands    r0, r2                                          @ Check if the "enter" button interrupt is active
     cmp     r0, #0                                          @ Compare the result with 0
     bne     enable_button_event                             @ If not equal to 0, jump to btn_en
+@------ UP BUTTON EVENT ------------------------------------
+    movs    r0, r1                                          @ Copy the value of the interrupt register into r0
+    ldr     r2, =GPIO_BTN_UP_MSK                            @ Load the mask for the "up" button into r2
+    ands    r0, r2                                          @ Check if the "up" button interrupt is active
+    cmp     r0, #0                                          @ Compare the result with 0
+    bne     up_button_event                                 @ If not equal to 0, jump to up_button_event
+@------ DOWN BUTTON EVENT ----------------------------------
+    movs    r0, r1                                          @ Copy the value of the interrupt register into r0
+    ldr     r2, =GPIO_BTN_DN_MSK                            @ Load the mask for the "down" button into r2
+    ands    r0, r2                                          @ Check if the "down" button interrupt is active
+    cmp     r0, #0                                          @ Compare the result with 0
+    bne     down_button_event                               @ If not equal to 0, jump to down_button_event
 @-----------------------------------------------------------
     pop     {pc}                                            @ Pop the link register from the stack to the program counter
 
@@ -192,6 +208,28 @@ enable_button_event:
     ldr     r5, =GPIO_BTN_EN_MSK                            @ Load the mask for the "enter" button into r5
 @-----------------------------------------------------------
     b       end_button_event                                @ Jump to the end of button handling 
+
+up_button_event:
+@------ DOUBLE LTIMER --------------------------------------
+    ldr     r0, =ltimer                                     @ Load the address of ltimer
+    ldr     r1, [r0]                                        @ Load the current ltimer value
+    lsls    r1, r1, #1                                      @ Double the value by shifting left by 1 (multiply by 2)
+    str     r1, [r0]                                        @ Store the updated value back to ltimer
+@------ LOAD MASK ------------------------------------------
+    ldr     r5, =GPIO_BTN_UP_MSK                            @ Load the mask for the "up" button into r5
+@-----------------------------------------------------------
+    b       end_button_event                                @ Jump to the end of button handling  
+
+down_button_event:
+@------ HALF LTIMER ----------------------------------------
+    ldr     r0, =ltimer                                     @ Load the address of ltimer
+    ldr     r1, [r0]                                        @ Load the current ltimer value
+    lsrs    r1, r1, #1                                      @ Double the value by shifting left by 1 (multiply by 2)
+    str     r1, [r0]                                        @ Store the updated value back to ltimer
+@------ LOAD MASK ------------------------------------------
+    ldr     r5, =GPIO_BTN_DN_MSK                            @ Load the mask for the "down" button into r5
+@-----------------------------------------------------------
+    b       end_button_event                                @ Jump to the end of button handling  
 
 end_button_event:
 @------ CLEAR INTERRUPT ------------------------------------
