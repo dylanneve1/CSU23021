@@ -54,8 +54,8 @@ main_asm:
 led_setup:
     push    {lr}                                            @ Store the link register to the stack
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =setup_led_msg                              @ Load LED setup message into r0
-    bl      printf                                          @ Branch to printf
+    movs    r0, #8                                          @ Load the mapping for setup_led_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ ENABLE LED -----------------------------------------
     ldr     r0, =GPIO_LED_PIN                               @ Load LED Pin number into r0
     bl      asm_gpio_init                                   @ Initialize GPIO pin
@@ -123,8 +123,8 @@ gpio_setup:
 button_setup:
     push    {lr}                                            @ Store the link register to the stack
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =setup_ebutton_msg                          @ Load setup_ebutton_msg into r0
-    bl      printf                                          @ Branch to printf to print r0
+    movs    r0, #1                                          @ Load the mapping for setup_ebutton_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ ENABLE BUTTON --------------------------------------
     ldr     r0, =GPIO_BTN_EN                                @ Load Enable Pin number into r0
     bl      asm_gpio_init                                   @ Initialize GPIO pin
@@ -134,8 +134,8 @@ button_setup:
     ldr     r0, =GPIO_BTN_EN                                @ Load Enable Pin number into r0
     bl      asm_gpio_set_irq                                @ Enable the falling edge irq for our pin    
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =setup_ubutton_msg                          @ Load setup_ubutton_msg into r0
-    bl      printf                                          @ Branch to printf to print r0
+    movs    r0, #2                                          @ Load the mapping for setup_ubutton_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ UP BUTTON ------------------------------------------
     ldr     r0, =GPIO_BTN_UP                                @ Load Up Pin number into r0
     bl      asm_gpio_init                                   @ Initialize GPIO pin
@@ -145,8 +145,8 @@ button_setup:
     ldr     r0, =GPIO_BTN_UP                                @ Load Enable Pin number into r0
     bl      asm_gpio_set_irq                                @ Enable the falling edge irq for our pin  
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =setup_dbutton_msg                          @ Load setup_dbutton_msg into r0
-    bl      printf                                          @ Branch to printf to print r0
+    movs    r0, #3                                          @ Load the mapping for setup_dbutton_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ DOWN BUTTON ----------------------------------------
     ldr     r0, =GPIO_BTN_DN                                @ Load Down Pin number into r0
     bl      asm_gpio_init                                   @ Initialize GPIO pin
@@ -196,8 +196,8 @@ gpio_isr:
 
 enable_button_event:
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =event_eb_msg                               @ Load the asciz event_eb_msg into r0
-    bl      printf                                          @ Print the statement loaded into r0
+    movs    r0, #5                                          @ Load the mapping for event_eb_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ TOGGLE LSTATE --------------------------------------
     ldr     r0, =lstate                                     @ Load the address of the state variable into r0
     ldr     r4, [r0]                                        @ Load the current state value
@@ -233,8 +233,8 @@ led_update_event_helper:
 
 up_button_event:
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =event_ub_msg                               @ Load the asciz event_ub_msg into r0
-    bl      printf                                          @ Print the statement loaded into r0
+    movs    r0, #6                                          @ Load the mapping for event_ub_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ LOAD MASK ------------------------------------------
     ldr     r5, =GPIO_BTN_UP_MSK                            @ Load the mask for the "up" button into r5
 @------ SKIP WHEN EN BUTTON --------------------------------
@@ -252,8 +252,8 @@ up_button_event:
 
 down_button_event:
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =event_db_msg                               @ Load the asciz event_db_msg into r0
-    bl      printf                                          @ Print the statement loaded into r0
+    movs    r0, #7                                          @ Load the mapping for event_db_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ LOAD MASK ------------------------------------------
     ldr     r5, =GPIO_BTN_DN_MSK                            @ Load the mask for the "down" button into r5
 @------ SKIP WHEN EN BUTTON --------------------------------
@@ -271,8 +271,8 @@ down_button_event:
 
 reset_timer_event:
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =reset_timer_msg                            @ Load the asciz reset_timer_msg into r0
-    bl      printf                                          @ Print the statement loaded into r0
+    movs    r0, #11                                         @ Load the mapping for reset_timer_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ RESET LTIMER ---------------------------------------
     ldr     r0, =ltimer                                     @ Load the address of ltimer
     ldr     r1, =DFLT_ALARM_TIME                            @ Load value of DFLT_ALARM_TIME into r1
@@ -324,8 +324,8 @@ alarm_isr_en:
  */
 led_set_off:
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =led_off_msg                                @ Load the asciz led_off_msg into r0
-    bl      printf                                          @ Print the statement loaded into r0
+    movs    r0, #10                                         @ Load the mapping for led_off_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ SET DESIRED STATE ----------------------------------
     movs    r1, #LED_VAL_OFF                                @ The LED is currently "on" so we want to turn it "off"
 @------ JUMP TO SET STATE ----------------------------------
@@ -338,8 +338,8 @@ led_set_off:
  */
 led_set_on:
 @------ DEBUG PRINT ----------------------------------------
-    ldr     r0, =led_on_msg                                 @ Load the asciz led_on_msg into r0
-    bl      printf                                          @ Print the statement loaded into r0
+    movs    r0, #9                                          @ Load the mapping for led_on_msg into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @------ SET DESIRED STATE ----------------------------------
     movs    r1, #LED_VAL_ON                                 @ The LED is currently "off" so we want to turn it "on"
 @------ JUMP TO SET STATE ----------------------------------
@@ -360,20 +360,6 @@ led_set_state:
 alarm_isr_end:
     bl      set_alarm                                       @ Call the set_alarm subroutine to reset the flash rate
     pop     {pc}                                            @ Pop the link register from the stack to the program counter
-
-
-.align 4
-setup_ebutton_msg: .asciz "button_setup:        setting up EN button on pin 21\n"
-setup_ubutton_msg: .asciz "button_setup:        setting up UP button on pin 22\n"
-setup_dbutton_msg: .asciz "button_setup:        setting up DOWN button on pin 20\n"
-event_msg:         .asciz "gpio_isr:            an event has occurred!\n"
-event_eb_msg:      .asciz "enable_button_event: enable button has been pressed\n"
-event_ub_msg:      .asciz "up_button_event:     up button has been pressed\n"
-event_db_msg:      .asciz "down_button_event:   down button has been pressed\n"
-setup_led_msg:     .asciz "led_setup:           setting up LED on pin 25\n"
-led_on_msg:        .asciz "led_set_on:          toggling LED state to on\n"
-led_off_msg:       .asciz "led_set_off:         toggling LED state to off\n"
-reset_timer_msg:   .asciz "reset_timer_event:   timer reset to DFLT_ALARM_TIME\n"
 
 .data
 lstate:    .word   DFLT_STATE_STRT
