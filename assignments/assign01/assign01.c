@@ -16,6 +16,7 @@
 #define reset_timer_msg      "reset_timer_event:     timer reset to DFLT_ALARM_TIME\n"
 #define double_event_msg     "up_button_event:       doubling the LED flash rate\n"
 #define half_event_msg       "down_button_event:     halving the LED flash rate\n"
+#define boot_event_msg       "(assign01) main:       S/N->21364333 username->neved\n"
 
 // Declare the main assembly code entry point.
 void main_asm();
@@ -62,6 +63,9 @@ void log_message(int code) {
         case 13:
             printf("%s", half_event_msg);
             break;
+        case 14:
+            printf("%s", boot_event_msg);
+            break;
         default:
             printf("Unknown log event: %d\n", code);
             break;
@@ -96,7 +100,7 @@ void asm_gpio_set_irq(uint pin) {
 // Main entry point of the application
 int main() {
     stdio_init_all();              // Initialise all basic IO
-    printf("Assignment #1...\n");  // Basic print to console
+    log_message(14);               // Print initial log message
     main_asm();                    // Jump into the ASM code
     return 0;                      // Application return code
 }

@@ -1,2 +1,2 @@
-picocom -b 115200 /dev/tty.usbmodem2101
+picocom -b 115200 /dev/tty.usbmodem101
 
