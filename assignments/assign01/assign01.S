@@ -13,6 +13,10 @@
 .equ    DFLT_STATE_STOP,           0                        @ Specify the value to stop flashing
 .equ    DFLT_ALARM_TIME,     1000000                        @ Specify the default alarm timeout
 
+.equ    MAX_ALARM_CONST,          14                        @ Maximum lconst position
+.equ    DFLT_ALARM_CONST,          7                        @ Default lconst position
+.equ    MIN_ALARM_CONST,           0                        @ Minimum lconst position
+
 .equ    GPIO_BTN_DN_MSK,  0x00040000                        @ Bit-18 for falling-edge event on GP20
 .equ    GPIO_BTN_EN_MSK,  0x00400000                        @ Bit-22 for falling-edge event on GP21
 .equ    GPIO_BTN_UP_MSK,  0x04000000                        @ Bit-26 for falling-edge event on GP22
@@ -46,6 +50,7 @@
 .equ    RESET_TIMER_MSG,          11                        @ Reset timer message
 .equ    DOUBLE_EVENT_MSG,         12                        @ Double event message
 .equ    HALVE_EVENT_MSG,          13                        @ Half event message
+.equ    LIMITED_CONST_EVENT,      15                        @ Limited constraint event message
 
 /**
  * @brief Main entry point
@@ -259,6 +264,13 @@ up_button_event:
     ldr     r0, [r0]                                        @ Load value of lstate into r0
     cmp     r0, #0                                          @ If lstate is equal to 0, en button has been pressed and we do not toggle
     beq     reset_timer_event                               @ Branch to reset_time_event because en button is pressed
+@------ UPDATE CONSTRAINTS ---------------------------------
+    ldr     r0, =lconst                                     @ Load current constraint position into r0
+    ldr     r1, [r0]                                        @ Load value of lconst into r1
+    cmp     r1, #MIN_ALARM_CONST                            @ Check if lconst has reached min value
+    beq     limited_const_event                             @ If it cannot be halfed again, limited_const_event
+    subs    r1, #1                                          @ Decrement lconst to count this doubling
+    str     r1, [r0]                                        @ Store the updated lconst value
 @------ DEBUG PRINT ----------------------------------------
     ldr     r0, =DOUBLE_EVENT_MSG                           @ Load the mapping for double_event_msg into r0
     bl      log_message                                     @ Call log_message from C section of code
@@ -281,6 +293,13 @@ down_button_event:
     ldr     r0, [r0]                                        @ Load value of lstate into r0
     cmp     r0, #0                                          @ If lstate is equal to 0, en button has been pressed and we do not toggle
     beq     reset_timer_event                               @ Branch to reset_timer_event because en button is pressed
+@------ UPDATE CONSTRAINTS ---------------------------------
+    ldr     r0, =lconst                                     @ Load current constraint position into r0
+    ldr     r1, [r0]                                        @ Load value of lconst into r1
+    cmp     r1, #MAX_ALARM_CONST                            @ Check if lconst has reached max value
+    beq     limited_const_event                             @ If it cannot be halved again, limited_const_event
+    adds    r1, #1                                          @ Increment lconst to count this halving
+    str     r1, [r0]                                        @ Store the updated lconst value
 @------ DEBUG PRINT ----------------------------------------
     ldr     r0, =HALVE_EVENT_MSG                            @ Load the mapping for halve_event_msg into r0
     bl      log_message                                     @ Call log_message from C section of code
@@ -300,6 +319,17 @@ reset_timer_event:
     ldr     r0, =ltimer                                     @ Load the address of ltimer
     ldr     r1, =DFLT_ALARM_TIME                            @ Load value of DFLT_ALARM_TIME into r1
     str     r1, [r0]                                        @ Store the reset value back to ltimer
+@------ UPDATE CONSTRAINTS ---------------------------------
+    ldr     r0, =lconst                                     @ Load current constraint position into r0
+    ldr     r1, =DFLT_ALARM_CONST                           @ Load the default value of lconst into 31
+    str     r1, [r0]                                        @ Reset and store the default lconst value
+@-----------------------------------------------------------
+    b       end_button_event                                @ Jump to the end of button handling 
+
+limited_const_event:
+@------ DEBUG PRINT ----------------------------------------
+    ldr     r0, =LIMITED_CONST_EVENT                        @ Load the mapping for limited_const_event into r0
+    bl      log_message                                     @ Call log_message from C section of code
 @-----------------------------------------------------------
     b       end_button_event                                @ Jump to the end of button handling 
 
@@ -387,3 +417,4 @@ alarm_isr_end:
 .data
 lstate:    .word   DFLT_STATE_STRT
 ltimer:    .word   DFLT_ALARM_TIME
+lconst:    .word   DFLT_ALARM_CONST

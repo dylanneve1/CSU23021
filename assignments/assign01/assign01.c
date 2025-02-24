@@ -17,6 +17,7 @@
 #define double_event_msg     "up_button_event:       doubling the LED flash rate\n"
 #define half_event_msg       "down_button_event:     halving the LED flash rate\n"
 #define boot_event_msg       "(assign01) main:       S/N->21364333 username->neved\n"
+#define limited_const_msg    "limited_const_event:   ltimer has been constrained\n"
 
 // Declare the main assembly code entry point.
 void main_asm();
@@ -65,6 +66,9 @@ void log_message(int code) {
             break;
         case 14:
             printf("%s", boot_event_msg);
+            break;
+        case 15:
+            printf("%s", limited_const_msg);
             break;
         default:
             printf("Unknown log event: %d\n", code);
