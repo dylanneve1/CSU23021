@@ -61,7 +61,6 @@ main_asm:
     bl      led_setup                                       @ Branch to led_setup
     bl      button_setup                                    @ Branch to button_setup
     bl      alarm_setup                                     @ Branch to alarm_setup
-    bl      set_alarm                                       @ Branch to set_alarm
     bl      gpio_setup                                      @ Branch to gpio_setup
 @-----------------------------------------------------------
     bl      main_loop                                       @ Branch to main_loop
@@ -138,13 +137,13 @@ alarm_setup:
     movs    r2, #ALRM_ISR_OFFSET                            @ Move the ALARM0 offset into r2 
     add     r2, r1                                          @ Add the Alarm0 offset to the base address of Vector Table 
     ldr     r0, =alarm_isr                                  @ Load the address of subtoggle_led into r0 
-    str     r0, [r2]                                        @ Store the value into r2 (base address for RP2040 + Alarm0 offset), i.e. the alarm isr address
-    movs    r0, #1                                     
-    lsls    r1, #0
+    str     r0, [r2]                                        @ Store the value into r2
     ldr     r2, =(PPB_BASE + M0PLUS_NVIC_ICPR_OFFSET)       @ Load the address for the NVIC Interrupt Clear Pending register
-    str     r0, [r2]                                        @ Clear any pending interrupts by writing 1 at bit position 0 to the ICPR register
+    ldr     r0, =1                                     
+    str     r0, [r2]                                        @ Clear any pending interrupts by writing 1 at bit position 0
     ldr     r2, =(PPB_BASE + M0PLUS_NVIC_ISER_OFFSET)       @ Load the address for the NVIC Interrupt Set Enable register
-    str     r0, [r2]                                        @ Enable the alarm 0 interrupt by writing 1 at bit position 0 to the ISER register
+    ldr     r1, =1
+    str     r0, [r2]                                        @ Enable the alarm 0 interrupt by writing 1 at bit position 0 
 @-----------------------------------------------------------
     bx      lr 
 
@@ -165,11 +164,11 @@ gpio_setup:
 @------ GPIO SETUP -----------------------------------------
     ldr     r2, =(PPB_BASE + M0PLUS_VTOR_OFFSET)            @ Load the address of the Vector Table Offset Register into r2  
     ldr     r1, [r2]                                        @ Load the base address into r1 
-    movs    r2, #GPIO_ISR_OFFSET                            @ Move the GPIO offset into r2 
+    ldr     r2, =GPIO_ISR_OFFSET                            @ Move the GPIO offset into r2 
     add     r2, r1                                          @ Add the GPIO offset to the base address of the Vector Table 
     ldr     r1, =gpio_isr                                   @ Load the address of gpio_isr into r1 
-    str     r1, [r2]                                        @ Store this value into r2 (base address for RP2040 + GPIO offset), i.e. the gpio isr address
-    movs    r1, #1                                          @ Move the value 1 into r1 where bit 13 is logical HIGH
+    str     r1, [r2]                                        @ Store this value into r2
+    ldr     r1, =1                                          @ Move the value 1 into r1
     lsls    r1, #13                                         @ Shift r1 by 13 bits
     ldr     r2, =(PPB_BASE + M0PLUS_NVIC_ICPR_OFFSET)       @ Load the address for the NVIC Interrupt Clear Pending register
     str     r1, [r2]                                        @ Store the value in r1 into the ICPR - bit 13 as the GPIO is at int #13
@@ -183,7 +182,11 @@ gpio_setup:
  *        The main loop of the asm part of the program
  */
 main_loop:
-@------ INFINITE LOOP --------------------------------------
+@------ SET ALARM ------------------------------------------
+    bl      set_alarm                                       @ Call the set_alarm subroutine to reset the flash rate
+@------ WAIT FOR INTERRUPT ---------------------------------
+    wfi                                                     @ Wait for any interrupt
+@------ MAIN LOOP ------------------------------------------
     b       main_loop                                       @ Branch to main loop
 @-----------------------------------------------------------
 
@@ -344,9 +347,9 @@ end_button_event:
 alarm_isr:
     push    {lr}                                            @ Store the link register to the stack
 @------ CLEAR ALARM INTERRUPT FLAG -------------------------
-    ldr     r2, =TIMER_BASE                                 @ Load timer base address into r2
+    ldr     r2, =(TIMER_BASE + TIMER_INTR_OFFSET)           @ Load timer base address into r2
     movs    r1, #1                                          @ Set alarm interrupt flag
-    str     r1, [r2, #TIMER_INTR_OFFSET]                    @ Clear interrupt by writing to TIMER register
+    str     r1, [r2]                                        @ Clear interrupt by writing to TIMER register
 @------ SKIP WHEN EN BUTTON --------------------------------
     ldr     r0, =lstate                                     @ Load the address of lstate, the current en state
     ldr     r0, [r0]                                        @ Load value of lstate into r0
@@ -411,7 +414,6 @@ led_set_state:
     b       alarm_isr_end                                   @ Jump to alarm_isr_end
 
 alarm_isr_end:
-    bl      set_alarm                                       @ Call the set_alarm subroutine to reset the flash rate
     pop     {pc}                                            @ Pop the link register from the stack to the program counter
 
 .data
