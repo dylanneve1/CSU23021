@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef _HARDWARE_PIO_INSTRUCTIONS_H_
-#define _HARDWARE_PIO_INSTRUCTIONS_H_
+#ifndef _HARDWARE_PIO_INSTRUCTIONS_H
+#define _HARDWARE_PIO_INSTRUCTIONS_H
 
 #include "pico.h"
 
@@ -77,6 +77,10 @@ enum pio_src_dest {
 
 static inline uint _pio_major_instr_bits(uint instr) {
     return instr & 0xe000u;
+}
+
+static inline uint _pio_arg1(uint instr) {
+    return (instr >> 5) & 0x7u;
 }
 
 static inline uint _pio_encode_instr_and_args(enum pio_instr_bits instr_bits, uint arg1, uint arg2) {

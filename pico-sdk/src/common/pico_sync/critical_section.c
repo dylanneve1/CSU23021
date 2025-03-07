@@ -6,7 +6,7 @@
 
 #include "pico/critical_section.h"
 
-#if !PICO_NO_HARDWARE
+#if PICO_32BIT
 static_assert(sizeof(critical_section_t) == 8, "");
 #endif
 
@@ -21,7 +21,5 @@ void critical_section_init_with_lock_num(critical_section_t *crit_sec, uint lock
 
 void critical_section_deinit(critical_section_t *crit_sec) {
     spin_lock_unclaim(spin_lock_get_num(crit_sec->spin_lock));
-#ifndef NDEBUG
-    crit_sec->spin_lock = (spin_lock_t *)-1;
-#endif
+    crit_sec->spin_lock = NULL;
 }

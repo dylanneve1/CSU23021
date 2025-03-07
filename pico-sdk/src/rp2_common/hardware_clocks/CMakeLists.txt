@@ -1,6 +1,6 @@
 pico_simple_hardware_target(clocks)
 
-target_link_libraries(hardware_clocks INTERFACE
+pico_mirrored_target_link_libraries(hardware_clocks INTERFACE
         hardware_gpio
         hardware_irq
         hardware_resets
@@ -11,3 +11,7 @@ target_link_libraries(hardware_clocks INTERFACE
         hardware_watchdog
         hardware_xosc
 )
+
+if (PICO_USE_FASTEST_SUPPORTED_CLOCK)
+    target_compile_definitions(hardware_clocks INTERFACE PICO_USE_FASTEST_SUPPORTED_CLOCK=1)
+endif()

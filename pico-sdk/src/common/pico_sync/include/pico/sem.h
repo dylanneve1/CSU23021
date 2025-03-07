@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef _PLATFORM_SEM_H
-#define _PLATFORM_SEM_H
+#ifndef _PICO_SEM_H
+#define _PICO_SEM_H
 
 #include "pico/lock_core.h"
 
@@ -28,7 +28,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef struct __packed_aligned semaphore {
+typedef struct semaphore {
     struct lock_core core;
     int16_t permits;
     int16_t max_permits;

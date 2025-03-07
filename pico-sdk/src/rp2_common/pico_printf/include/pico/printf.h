@@ -29,13 +29,13 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef PICO_PRINTF_H_
-#define PICO_PRINTF_H_
+#ifndef _PICO_PRINTF_H
+#define _PICO_PRINTF_H
 
 /** \file printf.h
  *  \defgroup pico_printf pico_printf
  *
- * Compact replacement for printf by Marco Paland (info@paland.com)
+ * \brief Compact replacement for printf by Marco Paland (info@paland.com)
  */
 
 #ifdef __cplusplus
@@ -70,7 +70,7 @@ bool weak_raw_vprintf(const char *fmt, va_list args);
 #endif
 
 /**
- * printf with output function
+ * \brief printf with output function
  * You may use this as dynamic alternative to printf() with its fixed _putchar() output
  * \param out An output function which takes one character and an argument pointer
  * \param arg An argument pointer for user data passed to output function

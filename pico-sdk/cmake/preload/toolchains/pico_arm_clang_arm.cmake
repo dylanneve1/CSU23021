@@ -1,7 +1,5 @@
-# NOTE: THIS IS A WIP ONLY PICO_ARM_GCC IS CURRENTLY SUPPORTED
-# todo there is probably a more "cmake" way of doing this going thru the standard path with our "PICO" platform
 #  i.e. CMake<Lang>Information and whatnot
-include(${CMAKE_CURRENT_LIST_DIR}/find_compiler.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/util/find_compiler.cmake)
 
 # include our Platform/PICO.cmake
 set(CMAKE_SYSTEM_NAME PICO)
@@ -27,10 +25,6 @@ set(CMAKE_INCLUDE_FLAG_ASM "-I")
 set(CMAKE_OBJCOPY ${PICO_OBJCOPY} CACHE FILEPATH "")
 set(CMAKE_OBJDUMP ${PICO_OBJDUMP} CACHE FILEPATH "")
 
-# Disable compiler checks.
-set(CMAKE_C_COMPILER_FORCED TRUE)
-set(CMAKE_CXX_COMPILER_FORCED TRUE)
-
 # Add target system root to cmake find path.
 get_filename_component(PICO_COMPILER_DIR "${PICO_COMPILER_CC}" DIRECTORY)
 get_filename_component(CMAKE_FIND_ROOT_PATH "${PICO_COMPILER_DIR}" DIRECTORY)
@@ -41,12 +35,5 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 
-# todo move to platform/Generix-xxx
-set(ARM_CLANG_COMMON_FLAGS " --cpu=Cortex-M0plus")
-string(APPEND CMAKE_C_FLAGS_INIT "${ARM_CLANG_COMMON_FLAGS}")
-string(APPEND CMAKE_CXX_FLAGS_INIT "${ARM_CLANG_COMMON_FLAGS}")
-string(APPEND CMAKE_ASM_FLAGS_INIT "${ARM_CLANG_COMMON_FLAGS}")
-string(APPEND CMAKE_C_FLAGS_DEBUG_INIT "${ARM_CLANG_COMMON_FLAGS} -Og")
-string(APPEND CMAKE_CXX_FLAGS_DEBUG_INIT "${ARM_CLANG_COMMON_FLAGS} -Og")
-
-
+set(ARM_TOOLCHAIN_COMMON_FLAGS " --cpu=Cortex-M0plus")
+include(${CMAKE_CURRENT_LIST_DIR}/util/set_flags.cmake)

@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef _HARDWARE_GPIO_H_
-#define _HARDWARE_GPIO_H_
+#ifndef _HARDWARE_GPIO_H
+#define _HARDWARE_GPIO_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,8 +41,6 @@ enum gpio_drive_strength {
 
 #define GPIO_OUT 1
 #define GPIO_IN 0
-
-#define NUM_BANK0_GPIOS 30
 
 // ----------------------------------------------------------------------------
 // Pad Controls + IO Muxing
