@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set the PICO SDK path
-export PICO_SDK_PATH="$(pwd)/pico-sdk"
+export PICO_SDK_PATH="~/pico-sdk"
 
 # Clean and create the build directory
 rm -rf build && mkdir build
