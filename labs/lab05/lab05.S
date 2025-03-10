@@ -30,48 +30,61 @@ loop:
  
 @ Subroutine used to introduce a short delay in the application
 do_sleep:
-    @ <TODO – add assembly code to implement the sleep delay using sleep_ms>
+    push    {lr}                        @ Store the link register to the stack
+    ldr     r0, =SLEEP_TIME             @ Set the value of SLEEP_TIME we want to wait for
+    bl      sleep_ms                    @ Sleep until SLEEP_TIME has elapsed then toggle the LED GPIO pin
+    pop     {pc}                        @ Return to caller
  
 @ Subroutine used to initialise the PI Pico built-in LED
 init_gpio_led:
-    @ <TODO – add assembly code to initialise the LED GPIO pin>
+    push    {lr}                        @ Store the link register to the stack
+    movs    r0, #LED_GPIO_PIN           @ This value is the GPIO LED pin on the PI PICO board
+    bl      asm_gpio_init               @ Call the subroutine to initialise the GPIO pin specified by r0
+    movs    r0, #LED_GPIO_PIN           @ This value is the GPIO LED pin on the PI PICO board
+    movs    r1, #LED_GPIO_OUT           @ We want this GPIO pin to be setup as an output pin
+    bl      asm_gpio_set_dir            @ Call the subroutine to set the GPIO pin specified by r0 to state specified by r1
+    pop     {pc}                        @ Return to caller
  
 @ Subroutine used to install the SVC interrupt service handler
 install_svc_isr:
-    ldr     r2, =(PPB_BASE + M0PLUS_VTOR_OFFSET)    @ <TODO – add comment>
-    ldr     r1, [r2]                                @ <TODO – add comment>
-    movs    r2, #SVC_ISR_OFFSET                     @ <TODO – add comment>
-    add     r2, r1                                  @ <TODO – add comment>
-    ldr     r0, =svc_isr                            @ <TODO – add comment>
-    str     r0, [r2]                                @ <TODO – add comment>
-    bx      lr                                      @ <TODO – add comment>
+    ldr     r2, =(PPB_BASE + M0PLUS_VTOR_OFFSET)    @ Load the address of the Vector Table Offset Register
+    ldr     r1, [r2]                                @ Read the current vector table base address
+    movs    r2, #SVC_ISR_OFFSET                     @ Load the offset for the SVC ISR in the vector table
+    add     r2, r1                                  @ Compute the address of the SVC vector entry
+    ldr     r0, =svc_isr                            @ Load the address of our custom SVC handler
+    str     r0, [r2]                                @ Store the address of svc_isr into the SVC vector entry
+    bx      lr                                      @ Return from the function
  
 @ SVC interrupt service handler routine
 .thumb_func                     @ Required for all interrupt service routines
 svc_isr:
-    push    {lr}                @ <TODO – add comment>
-    ldr     r0, [sp, #0x1C]     @ <TODO – add comment>
-    subs    r0, #0x2            @ <TODO – add comment>
-    ldr     r0, [r0]            @ <TODO – add comment>
-    ldr     r1, =#0xFF          @ <TODO – add comment>
-    ands    r0, r1              @ <TODO – add comment>
-    cmp     r0, #SVC_MAX_INSTRS @ <TODO – add comment>
-    bgt     svc_done            @ <TODO – add comment>
-    adr     r1, svc_jmptbl      @ <TODO – add comment>
-    lsls    r0, #2              @ <TODO – add comment>
-    ldr     r1, [r1, r0]        @ <TODO – add comment>
-    mov     pc, r1              @ <TODO – add comment>
+    push    {lr}                @ Save the Link Register (return address) onto the stack
+    ldr     r0, [sp, #0x1C]     @ Load the stacked Program Counter (PC) value (address of SVC instruction)
+    subs    r0, #0x2            @ Adjust PC to point to the actual SVC instruction
+    ldr     r0, [r0]            @ Read the instruction at that address
+    ldr     r1, =#0xFF          @ Load mask to extract the SVC number
+    ands    r0, r1              @ Extract the immediate value
+    cmp     r0, #SVC_MAX_INSTRS @ Compare with the max number of allowed SVC handlers
+    bgt     svc_done            @ If SVC number is greater, exit ISR (invalid SVC call)
+    adr     r1, svc_jmptbl      @ Load the address of the jump table for SVC handlers
+    lsls    r0, #2              @ Multiply SVC number by 4 (word offset for jump table)
+    ldr     r1, [r1, r0]        @ Load the address of the corresponding SVC handler
+    mov     pc, r1              @ Branch to the appropriate SVC handler
 svc_done:
-    pop     {pc}                @ <TODO – add comment>
+    pop     {pc}                @ Restore the return address
  
 @ First function of SVC subroutine - turn on the LED
 svc_num0:
-    @ <TODO – add assembly code to turn on the LED>
+    movs    r1, #LED_VALUE_ON   @ The LED is currently "off" so we want to turn it "on"
+    movs    r0, #LED_GPIO_PIN   @ Set the LED GPIO pin number to r0 for use by asm_gpio_put
+    bl      asm_gpio_put        @ Update the the value of the LED GPIO pin (based on value in r1)
     b       svc_done            @ Branch back to the main ISR when done
  
 @ Second function of SVC subroutine - turn off the LED
 svc_num1:
-    @ <TODO – add assembly code to turn off the LED>
+    movs    r1, #LED_VALUE_OFF  @ The LED is currently "on" so we want to turn it "off"
+    movs    r0, #LED_GPIO_PIN   @ Set the LED GPIO pin number to r0 for use by asm_gpio_put
+    bl      asm_gpio_put        @ Update the the value of the LED GPIO pin (based on value in r1)
     b       svc_done            @ Branch back to the main ISR when done
  
 @ SVC function entry jump table.
