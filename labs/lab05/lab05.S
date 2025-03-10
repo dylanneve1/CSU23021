@@ -14,6 +14,12 @@
 .equ    LED_VALUE_OFF, 0        @ Specify the value that turns the LED "off"
 .equ    SVC_ISR_OFFSET, 0x2C    @ The SVC is entry 11 in the vector table
 .equ    SVC_MAX_INSTRS, 0x01    @ Maximum allowed SVC subroutines
+
+.equ    SETUP_LED_MSG, 1        @ Setup event button message
+.equ    DO_SLEEP_MSG, 2         @ Do sleep event message
+.equ    LED_ON_MSG, 3           @ LED on message
+.equ    LED_OFF_MSG, 4          @ LED off message
+.equ    SETUP_SVC_MSG, 5        @ Setup SVC message
  
 @ Entry point to the ASM portion of the program
 main_asm:
@@ -31,6 +37,8 @@ loop:
 @ Subroutine used to introduce a short delay in the application
 do_sleep:
     push    {lr}                        @ Store the link register to the stack
+    ldr     r0, =DO_SLEEP_MSG           @ Load the mapping for do_sleep_msg into r0
+    bl      log_message                 @ Call log_message from C section of code
     ldr     r0, =SLEEP_TIME             @ Set the value of SLEEP_TIME we want to wait for
     bl      sleep_ms                    @ Sleep until SLEEP_TIME has elapsed then toggle the LED GPIO pin
     pop     {pc}                        @ Return to caller
@@ -38,6 +46,8 @@ do_sleep:
 @ Subroutine used to initialise the PI Pico built-in LED
 init_gpio_led:
     push    {lr}                        @ Store the link register to the stack
+    ldr     r0, =SETUP_LED_MSG          @ Load the mapping for setup_led_msg into r0
+    bl      log_message                 @ Call log_message from C section of code
     movs    r0, #LED_GPIO_PIN           @ This value is the GPIO LED pin on the PI PICO board
     bl      asm_gpio_init               @ Call the subroutine to initialise the GPIO pin specified by r0
     movs    r0, #LED_GPIO_PIN           @ This value is the GPIO LED pin on the PI PICO board
@@ -47,13 +57,16 @@ init_gpio_led:
  
 @ Subroutine used to install the SVC interrupt service handler
 install_svc_isr:
+    push    {lr}                                    @ Store the link register to the stack
+    ldr     r0, =SETUP_SVC_MSG                      @ Load the mapping for setup_svc_msg into r0
+    bl      log_message                             @ Call log_message from C section of code
     ldr     r2, =(PPB_BASE + M0PLUS_VTOR_OFFSET)    @ Load the address of the Vector Table Offset Register
     ldr     r1, [r2]                                @ Read the current vector table base address
     movs    r2, #SVC_ISR_OFFSET                     @ Load the offset for the SVC ISR in the vector table
     add     r2, r1                                  @ Compute the address of the SVC vector entry
     ldr     r0, =svc_isr                            @ Load the address of our custom SVC handler
     str     r0, [r2]                                @ Store the address of svc_isr into the SVC vector entry
-    bx      lr                                      @ Return from the function
+    pop     {pc}                                    @ Return from the function
  
 @ SVC interrupt service handler routine
 .thumb_func                     @ Required for all interrupt service routines
@@ -75,6 +88,8 @@ svc_done:
  
 @ First function of SVC subroutine - turn on the LED
 svc_num0:
+    ldr     r0, =LED_ON_MSG     @ Load the mapping for led_off_msg into r0
+    bl      log_message         @ Call log_message from C section of code
     movs    r1, #LED_VALUE_ON   @ The LED is currently "off" so we want to turn it "on"
     movs    r0, #LED_GPIO_PIN   @ Set the LED GPIO pin number to r0 for use by asm_gpio_put
     bl      asm_gpio_put        @ Update the the value of the LED GPIO pin (based on value in r1)
@@ -82,6 +97,8 @@ svc_num0:
  
 @ Second function of SVC subroutine - turn off the LED
 svc_num1:
+    ldr     r0, =LED_OFF_MSG    @ Load the mapping for led_off_msg into r0
+    bl      log_message         @ Call log_message from C section of code
     movs    r1, #LED_VALUE_OFF  @ The LED is currently "on" so we want to turn it "off"
     movs    r0, #LED_GPIO_PIN   @ Set the LED GPIO pin number to r0 for use by asm_gpio_put
     bl      asm_gpio_put        @ Update the the value of the LED GPIO pin (based on value in r1)
